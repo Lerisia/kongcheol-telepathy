@@ -1,0 +1,6 @@
+debugpy
+decompyle3
+psutil
+brotli
+websockets
+scapy

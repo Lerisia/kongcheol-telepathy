@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>모비딜</title>
+    <style>
+        body {
+            font-family: 'Pretendard', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #e3f0ff 0%, #f9e7ff 100%);
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(60,60,120,0.10);
+            padding: 36px 30px 28px 30px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            min-height: 90vh;
+        }
+        h2 {
+            margin-top: 0;
+            color: #5a2d82;
+            letter-spacing: 1.5px;
+            font-size: 2.1em;
+            text-align: center;
+            margin-bottom: 18px;
+            font-family: 'Pretendard', 'Segoe UI', Arial, sans-serif;
+        }
+        #conn-controls {
+            margin-bottom: 18px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            box-shadow: none;
+        }
+        .btn {
+            padding: 7px 22px;
+            border: none;
+            border-radius: 22px;
+            font-size: 1.08em;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(60,60,120,0.07);
+            transition: background 0.2s, transform 0.1s;
+            outline: none;
+        }
+        #disconnectBtn {
+            background: #43a047;
+            color: #fff;
+        }
+        #disconnectBtn:hover {
+            background: #388e3c;
+            transform: scale(1.04);
+        }
+        #reconnectBtn {
+            background: #e53935;
+            color: #fff;
+        }
+        #reconnectBtn:hover {
+            background: #b71c1c;
+            transform: scale(1.04);
+        }
+        .position-panel {
+            /* position: absolute; */
+            /* top: 24px; */
+            /* left: 24px; */
+            /* z-index: 10; */
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            background: #f3f7ff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(60,60,120,0.04);
+            padding: 14px 18px;
+            font-size: 1.08em;
+            font-family: 'Consolas', 'Menlo', monospace;
+            min-width: 180px;
+            margin-bottom: 18px;
+        }
+        .position-row {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            color: #2d3a4b;
+            margin: 0 0 2px 0;
+        }
+        .position-label {
+            min-width: 60px;
+            margin-right: 6px;
+        }
+        .position-value {
+            font-weight: normal;
+            color: #222;
+        }
+        .log-area {
+            margin-top: auto;
+            overflow: hidden;
+        }
+        .log-area > div {
+            min-height: 0; /* flex column 자식이 스크롤 가능하도록 */
+            display: flex;
+            flex-direction: row;
+            gap: 16px;
+            height: 100%;
+        }
+        .log-panel, .json-panel {
+            height: 100%;
+            max-height: 100%;
+            min-height: 0;
+            overflow-y: auto !important;
+            flex: 1 1 0;
+            background: #f9fafb;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 14px;
+            box-shadow: 0 2px 8px rgba(60,60,120,0.04);
+        }
+        .json-panel {
+            margin-bottom: 0;
+        }
+        .msg-recv {
+            color: #333;
+            background: #eaf6ff;
+            border-left: 4px solid #2196f3;
+            margin-bottom: 5px;
+            padding: 5px 10px;
+            border-radius: 6px;
+            word-break: break-all;
+            transition: background 0.2s;
+        }
+        .msg-send {
+            color: #1976d2;
+            background: #fffde7;
+            border-left: 4px solid #ffd600;
+            margin-bottom: 5px;
+            padding: 5px 10px;
+            border-radius: 6px;
+            word-break: break-all;
+            transition: background 0.2s;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 10px; max-width: 100vw; }
+            .log-area { height: 180px; min-height: 180px; max-height: 180px; }
+            .log-panel, .json-panel { height: 100%; min-height: 100%; max-height: 100%; padding: 6px; font-size: 0.95em; }
+            h2 { font-size: 1.2em; }
+            .btn { font-size: 0.95em; padding: 5px 10px; }
+            .position-panel { font-size: 1em; flex-direction: column; gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>모비딜</h2>
+        <div id="conn-controls">
+            <button id="disconnectBtn" class="btn" style="display:none;">⛔ 연결 중지</button>
+            <button id="reconnectBtn" class="btn">🔄 재연결</button>
+        </div>
+        <!-- 데미지 통계 패널 추가 -->
+        <div id="damage-stats-panel" style="margin-bottom:18px; background:#fffbe7; border-radius:10px; padding:10px 16px; font-family:Consolas,Menlo,monospace; font-size:1em; color:#444;">
+            <b>데미지 순위:</b>
+            <ol id="damage-stats-list" style="margin:8px 0 0 18px; padding:0;"></ol>
+        </div>
+    </div>
+    <script>
+        const wsUrl = "ws://localhost:8080";
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const reconnectBtn = document.getElementById('reconnectBtn');
+        const connControls = document.getElementById('conn-controls');
+        let startTime = Date.now();
+        let ws;
+
+        const damageStats = {};
+        const jobMapping = {};
+        p_hpdff = null
+
+        // 데미지 순위 표시 함수
+        function renderDamageStats() {
+             const elapsedSeconds = (Date.now() - startTime) / 1000;
+
+            // 강제 DOM 갱신을 위해 기존 노드 제거 후 새로 생성
+            const statsList = document.getElementById('damage-stats-list');
+            while (statsList.firstChild) statsList.removeChild(statsList.firstChild);
+            const sorted = Object.entries(damageStats)
+                .sort((a, b) => b[1] - a[1]);
+            sorted.forEach(([user_id, total], idx) => {
+                const li = document.createElement('li');                
+                li.textContent = `${jobMapping[user_id] ? jobMapping[user_id] : user_id} - 총합: ${total}/${total/elapsedSeconds}`;
+                statsList.appendChild(li);
+            });
+        }
+
+        function processJson(obj) {
+            // obj는 {type: "json", hide: bool, data: [...]}
+            let items = obj.data;
+            if (!Array.isArray(items) || items.length === 0) return;
+
+            // 사용하는 데이터 처리
+            let updated = false;
+            items.forEach(entry => {
+                if (!entry || typeof entry !== "object") return;                
+                switch (entry.type) {       
+                    case 100178:
+                        p_hpdff = entry
+                        break;
+                    case 10299:
+                        if(p_hpdff != null && entry.target_id == p_hpdff.target_id){
+                            const dmg = Number(p_hpdff.prev_hp - p_hpdff.current_hp) || 0;
+                            const uid = entry.user_id;
+                            if (!damageStats[uid]) damageStats[uid] = 0;
+                            damageStats[uid] += dmg;
+                            updated = true;
+                        }
+                        p_attack = null;
+                        break;
+                    case 100041:
+                        const uid = entry.user_id;
+                        if (!jobMapping[uid]) {
+                            jobMapping[uid] = null
+                            const sk = entry.skill_name.toLowerCase()
+                            if(sk.includes("expertwarrior")) jobMapping[uid] = "검방";
+                            else if(sk.includes("greatsword")) jobMapping[uid] = "대검";
+                            else if(sk.includes("swordmaster")) jobMapping[uid] = "검술";
+                            
+                            else if(sk.includes("healer")) jobMapping[uid] = "힐러";
+                            else if(sk.includes("monk")) jobMapping[uid] = "수도";
+                            else if(sk.includes("priest")) jobMapping[uid] = "사제";
+
+                            else if(sk.includes("bard")) jobMapping[uid] = "음유";                            
+                            else if(sk.includes("battlemusician")) jobMapping[uid] = "악사";
+                            else if(sk.includes("dancer")) jobMapping[uid] = "댄서";
+                            
+                            else if(sk.includes("fighter")) jobMapping[uid] = "격가";
+                            else if(sk.includes("dualblades")) jobMapping[uid] = "듀블";
+                            else if(sk.includes("highthief")) jobMapping[uid] = "도적";
+                            
+                            else if(sk.includes("highmage")) jobMapping[uid] = "븝미";
+                            else if(sk.includes("firemage")) jobMapping[uid] = "화법";
+                            else if(sk.includes("icemage")) jobMapping[uid] = "빙결";
+                            else if(sk.includes("lightningmage")) jobMapping[uid] = "전격";
+
+                            else if(sk.includes("higharcher")) jobMapping[uid] = "궁수";
+                            else if(sk.includes("arbalist")) jobMapping[uid] = "석궁";
+                            else if(sk.includes("longbowman")) jobMapping[uid] = "장궁";
+
+                            else if(sk.includes("defaultattack")) jobMapping[uid] = null;
+
+                            else{
+                                jobMapping[uid] = entry.skill_name                            
+                            }
+                        }
+                        break;
+                    default:
+                        console.log("failed " + entry.type)
+                        // 필요시 다른 타입 처리
+                        break;
+                }
+            });
+            if (updated) renderDamageStats();
+        }
+
+        function setButtons(connected) {
+            if (connected) {
+                disconnectBtn.style.display = '';
+                reconnectBtn.style.display = 'none';
+                connControls.style.background = 'none';
+            } else {
+                disconnectBtn.style.display = 'none';
+                reconnectBtn.style.display = '';
+                connControls.style.background = 'none';
+            }
+        }
+
+        function connect() {
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                setButtons(true);
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const obj = JSON.parse(event.data);
+                    switch (obj.type) {
+                        case "log":
+                            logMessage(obj.data, 'recv');
+                            break;
+                        case "json":
+                            processJson(obj);
+                            logJson(obj);
+                            break;
+                        default:
+                            console.warn("알 수 없는 메시지 타입:", obj.type);
+                    }
+                } catch (e) {}
+            };
+
+            ws.onclose = () => {
+                setButtons(false);
+            };
+
+            ws.onerror = (err) => {
+                setButtons(false);
+            };
+        }
+
+        disconnectBtn.onclick = () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+            }
+        };
+
+        reconnectBtn.onclick = () => {
+            connect();
+        };
+
+        setButtons(false);
+        connect();
+    </script>
+</body>
+</html>
