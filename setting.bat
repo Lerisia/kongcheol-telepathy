@@ -1,5 +1,7 @@
 @echo off
 REM 가상환경 생성
+pip install virtualenv
+
 python -m venv .venv
 
 REM 가상환경의 pip로 requirements 설치
