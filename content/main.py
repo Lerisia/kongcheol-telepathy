@@ -104,7 +104,7 @@ parse_dict = {
 class PacketStreamer:
     def __init__(self, filter_expr: str = "tcp and src port 16000"):
         self.queue: asyncio.Queue[Packet] = asyncio.Queue()
-        self.sniffer = AsyncSniffer(filter=filter_expr, iface="en0", prn=self._enqueue_packet)
+        self.sniffer = AsyncSniffer(filter=filter_expr, prn=self._enqueue_packet)
         self.loop = asyncio.get_event_loop()
         self.buffer:bytes = b''
 
