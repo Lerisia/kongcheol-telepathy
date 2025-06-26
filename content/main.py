@@ -8,12 +8,12 @@ import brotli
 
 FLAG_BITS = (
     (0, 'crit_flag', 0x01),
-    #(0, 'what1', 0x02),
+    (0, 'what1', 0x02),
     (0, 'unguarded_flag', 0x04),
     (0, 'break_flag', 0x08),
 
-    #(0, 'what05', 0x10),
-    #(0, 'what06', 0x20),
+    (0, 'what05', 0x10),
+    (0, 'what06', 0x20),
     (0, 'first_hit_flag', 0x40),
     (0, 'default_attack_flag', 0x80),
     
@@ -43,7 +43,7 @@ FLAG_BITS = (
     (3, 'add_hit_flag', 0x08),
 
     (3, 'bleed_flag', 0x10),
-    #(3, 'what46', 0x20),
+    (3, 'what46', 0x20),
     (3, 'fire_flag', 0x40),
     (3, 'holy_flag', 0x80),
 
@@ -52,7 +52,7 @@ FLAG_BITS = (
     (4, 'poison_flag', 0x04),
     (4, 'mind_flag', 0x08),
 
-    #(4, 'what45', 0x10),
+    #(4, 'not_dot_flag', 0x10),
     #(4, 'what46', 0x20),
     #(4, 'what47', 0x40),
     #(4, 'what48', 0x80),
@@ -126,10 +126,34 @@ def parse_hp_changed(data):
         "current_hp": current
     }
 
+def parse_self_damage(data):
+    if len(data) != 53:
+        print("parse damage data length is not 4")
+        return ""
+
+    pivot = 0
+
+    user_id, pivot =  int.from_bytes(data[pivot:pivot+4], byteorder='little'), pivot+4
+    e1, pivot =  int.from_bytes(data[pivot:pivot+4], byteorder='little'), pivot+4
+
+    target_id, pivot =  int.from_bytes(data[pivot:pivot+4], byteorder='little'), pivot+4
+    e2, pivot =  int.from_bytes(data[pivot:pivot+4], byteorder='little'), pivot+4
+    
+    damage, pivot =  int.from_bytes(data[pivot:pivot+4], byteorder='little'), pivot+4
+
+    return {
+        "type": 10701,
+        "hide": True,
+        "user_id": user_id,
+        "target_id": target_id,
+        "damage": damage,
+    }
+
 parse_dict = {
     10299: parse_damage,
     100041: parse_action,      
     100178: parse_hp_changed,  # 체력 변화, (4 대상, 4 패딩, 4 기존, 4 패딩, 4 현재, 4패딩)
+    10701: parse_self_damage,
     }
 
 class PacketStreamer:

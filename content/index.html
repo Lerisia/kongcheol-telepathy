@@ -200,6 +200,8 @@
         }
         .rank-badge {
             display: inline-block;
+            min-width: 48px;
+            text-align: center;
             background: #e3e3ff;
             color: #5a2d82;
             border-radius: 8px;
@@ -208,16 +210,16 @@
             font-weight: 600;
             margin-right: 8px;
             letter-spacing: 0.5px;
+            box-sizing: border-box;
+            transition: background 0.2s, color 0.2s, border 0.2s;
+            border: 2px solid #d1d5fa;
         }
-        .rank-total {
-            color: #1976d2;
+        .rank-badge.me {
+            background: #ffd1dc !important;
+            color: #c2185b !important;
+            border: 2px solid #ff80ab !important;
+            box-shadow: 0 0 8px #ffb6c1aa;
             font-weight: bold;
-            margin-left: 8px;
-        }
-        .rank-dps {
-            color: #43a047;
-            font-weight: bold;
-            margin-left: 8px;
         }
     </style>
 </head>
@@ -251,9 +253,11 @@
 
         const damageStats = {};
         const damageByTargetByUser = {};
+        const selfDamageByUser = {}
         const jobMapping = {};
         const damageForDPS = {};
-        let bossTmpData = {id:0, hp:0};
+        const bossTmpData = {id:0, hp:0};
+        const selfTmpData = {id:0, total:0}
         p_hpdff = null
 
         let bossOnly = false;
@@ -282,8 +286,14 @@
             const critRate = stat.crit ? ((stat.crit / count) * 100).toFixed(1) : 0;
             const addhitRate = stat.addhit ? ((stat.addhit / count) * 100).toFixed(1) : 0;
             const dotDamage = stat.dot_damage || 0;
+            let name;
+            if (user_id == selfTmpData.id) {
+                name = `<span class="rank-badge me" style="min-width:48px;display:inline-block;text-align:center;">본인</span>`;
+            } else {
+                name = `<span class="rank-badge" style="min-width:48px;display:inline-block;text-align:center;">${jobMapping[user_id] || user_id}</span>`;
+            }
             detailDiv.innerHTML = `
-                <span class="detail-title">${jobMapping[user_id] || user_id}</span>
+                <span class="detail-title">${name}</span>
                 <div class="detail-stats">
                     <div><span class="detail-label">크리 확률:</span>
                     <span class="detail-value">${critRate}%</span></div>
@@ -349,8 +359,9 @@
                     else if (idx === 2) medal = '🥉';
                     // 직업명 뱃지
                     const badge = document.createElement('span');
-                    badge.className = 'rank-badge';
-                    badge.textContent = jobMapping[user_id] ? jobMapping[user_id] : user_id;
+                    let isMe = selfTmpData.id == user_id;
+                    badge.className = 'rank-badge' + (isMe ? ' me' : '');
+                    badge.textContent = isMe ? "본인" : (jobMapping[user_id] ? jobMapping[user_id] : user_id);
 
                     const totalSpan = document.createElement('span');
                     totalSpan.className = 'rank-total';
@@ -455,8 +466,8 @@
                         p_attack = null;
                         break;
                     case 100041:
-                        const uid = entry.user_id;
-                        if (!jobMapping[uid]) {
+                        if (!jobMapping[entry.user_id]) {
+                            const uid = entry.user_id;
                             jobMapping[uid] = null
                             const sk = entry.skill_name.toLowerCase()
                             if(sk.includes("expertwarrior")) jobMapping[uid] = "검방";
@@ -488,6 +499,22 @@
 
                             else{
                                 jobMapping[uid] = null                           
+                            }
+                        }
+                        break;
+                    case 10701:
+                        {
+                            const uid = entry.user_id;
+                            if(!selfDamageByUser[uid]) {
+                                selfDamageByUser[uid] = {
+                                    id: uid,
+                                    total: 0,
+                                };
+                            }
+                            selfDamageByUser[uid].total += entry.damage;
+                            if (selfTmpData.total < selfDamageByUser[uid].total) {
+                                selfTmpData.id = uid;
+                                selfTmpData.total = selfDamageByUser[uid].total;
                             }
                         }
                         break;
