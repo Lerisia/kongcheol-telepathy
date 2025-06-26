@@ -8,12 +8,12 @@ import brotli
 
 FLAG_BITS = (
     (0, 'crit_flag', 0x01),
-    (0, 'what1', 0x02),
+    #(0, 'what1', 0x02),
     (0, 'unguarded_flag', 0x04),
     (0, 'break_flag', 0x08),
 
-    (0, 'what05', 0x10),
-    (0, 'what06', 0x20),
+    #(0, 'what05', 0x10),
+    #(0, 'what06', 0x20),
     (0, 'first_hit_flag', 0x40),
     (0, 'default_attack_flag', 0x80),
     
@@ -22,28 +22,28 @@ FLAG_BITS = (
     (1, 'fast_flag', 0x04),
     (1, 'dot_flag', 0x08),
     
-    (1, 'what15', 0x10),
-    (1, 'what16', 0x20),
-    (1, 'what17', 0x40),
+    #(1, 'what15', 0x10),
+    #(1, 'what16', 0x20),
+    #(1, 'what17', 0x40),
     (1, 'dot_flag2', 0x80),
 
     (2, 'dot_flag3', 0x01),
-    (2, 'what22', 0x02),
-    (2, 'what23', 0x04),
-    (2, 'what24', 0x08),
+    #(2, 'what22', 0x02),
+    #(2, 'what23', 0x04),
+    #(2, 'what24', 0x08),
     
-    (2, 'what25', 0x10),
-    (2, 'what26', 0x20),
-    (2, 'what27', 0x40),
-    (2, 'what28', 0x80),
+    #(2, 'what25', 0x10),
+    #(2, 'what26', 0x20),
+    #(2, 'what27', 0x40),
+    #(2, 'what28', 0x80),
 
-    (3, 'what31', 0x01),
-    (3, 'what32', 0x02),
-    (3, 'what33', 0x04),
+    #(3, 'what31', 0x01),
+    #(3, 'what32', 0x02),
+    #(3, 'what33', 0x04),
     (3, 'add_hit_flag', 0x08),
 
     (3, 'bleed_flag', 0x10),
-    (3, 'what46', 0x20),
+    #(3, 'what46', 0x20),
     (3, 'fire_flag', 0x40),
     (3, 'holy_flag', 0x80),
 
@@ -51,7 +51,11 @@ FLAG_BITS = (
     (4, 'electric_flag', 0x02),
     (4, 'poison_flag', 0x04),
     (4, 'mind_flag', 0x08),
-    (4, 'not_dot_flag', 0x10),
+
+    #(4, 'what45', 0x10),
+    #(4, 'what46', 0x20),
+    #(4, 'what47', 0x40),
+    #(4, 'what48', 0x80),
 )
 
 @lru_cache(maxsize=256)

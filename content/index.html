@@ -1,1023 +1,562 @@
 <!DOCTYPE html>
-
 <html lang="ko">
-
 <head>
-
     <meta charset="UTF-8">
-
     <title>콩철이 텔레파시</title>
-
     <style>
-
         body {
-
             font-family: 'Pretendard', 'Segoe UI', Arial, sans-serif;
-
             background: linear-gradient(135deg, #e3f0ff 0%, #f9e7ff 100%);
-
             margin: 0;
-
             padding: 0;
-
         }
-
         .container {
-
             max-width: 900px;
-
             margin: 40px auto;
-
             background: #fff;
-
             border-radius: 18px;
-
             box-shadow: 0 8px 32px rgba(60,60,120,0.10);
-
             padding: 36px 30px 28px 30px;
-
             position: relative;
-
             display: flex;
-
             flex-direction: column;
-
             min-height: 90vh;
-
         }
-
         h2 {
-
             margin-top: 0;
-
             color: #5a2d82;
-
             letter-spacing: 1.5px;
-
             font-size: 2.1em;
-
             text-align: center;
-
             margin-bottom: 18px;
-
             font-family: 'Pretendard', 'Segoe UI', Arial, sans-serif;
-
         }
-
         #conn-controls {
-
             margin-bottom: 18px;
-
             display: flex;
-
             gap: 12px;
-
             align-items: center;
-
             justify-content: center;
-
             background: none;
-
             box-shadow: none;
-
         }
-
         .btn {
-
             padding: 7px 22px;
-
             border: none;
-
             border-radius: 22px;
-
             font-size: 1.08em;
-
             font-weight: 600;
-
             cursor: pointer;
-
             box-shadow: 0 2px 8px rgba(60,60,120,0.07);
-
             transition: background 0.2s;
-
             outline: none;
-
         }
-
         #disconnectBtn {
-
             background: #43a047;
-
             color: #fff;
-
         }
-
         #disconnectBtn:hover {
-
             background: #388e3c;
-
         }
-
         #reconnectBtn {
-
             background: #e53935;
-
             color: #fff;
-
         }
-
         #reconnectBtn:hover {
-
             background: #b71c1c;
-
         }
-
         #damage-stats-panel {
-
             margin-bottom:18px;
-
             background:#fffbe7;
-
             border-radius:10px;
-
             padding:10px 16px;
-
             font-family:Consolas,Menlo,monospace;
-
             font-size:1em;
-
             color:#444;
-
             display: flex;
-
             flex-direction: column;
-
             gap: 8px;
-
             position: relative;
-
         }
-
         .detail-panel {
-
             margin-top: 18px;
-
             background: #fffde7;
-
-            border-radius: 12px;
-
+            border-radius: 16px;
             border: 2.5px solid #ffe082;
-
-            box-shadow: 0 4px 24px rgba(255, 215, 64, 0.08), 0 1.5px 0 #ffe082 inset;
-
-            padding: 18px 28px;
-
-            font-size: 1.08em;
-
+            box-shadow: 0 4px 24px rgba(255, 215, 64, 0.10), 0 1.5px 0 #ffe082 inset;
+            padding: 22px 36px;
+            font-size: 1.13em;
             color: #333;
-
-            min-height: 32px;
-
+            min-height: 38px;
             font-family: 'Consolas', 'Menlo', monospace;
-
-            max-width: 520px;
-
+            max-width: 540px;
             position: absolute;
-
             left: 50%;
-
             transform: translateX(-50%);
-
             z-index: 20;
-
             top: 100%;
-
             margin-top: 18px;
-
             display: block;
-
             visibility: hidden;
-
+            transition: box-shadow 0.2s, border-color 0.2s;
         }
-
-        .detail-panel b {
-
+        .detail-panel.visible {
+            visibility: visible;
+            box-shadow: 0 8px 32px rgba(255, 215, 64, 0.16), 0 2px 0 #ffe082 inset;
+            border-color: #ffd54f;
+        }
+        .detail-title {
+            font-size: 1.18em;
+            font-weight: bold;
+            color: #ffb300;
+            margin-bottom: 8px;
+            display: block;
+            letter-spacing: 1px;
+        }
+        .detail-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            align-items: flex-start;
+            font-size: 1.05em;
+            margin-top: 2px;
+        }
+        .detail-label {
+            color: #888;
+            font-weight: 600;
+            margin-right: 2px;
+        }
+        .detail-value {
             color: #1976d2;
-
+            font-weight: bold;
+            margin-right: 10px;
         }
-
+        .detail-dot {
+            color: #d84315;
+            font-weight: bold;
+        }
         .options-bar {
-
             display: flex;
-
             align-items: center;
-
             gap: 18px;
-
             margin-bottom: 2px;
-
             min-height: 32px;
-
         }
-
         .options-bar label {
-
             font-size: 1em;
-
             font-weight: 600;
-
             color: #5a2d82;
-
             display: flex;
-
             align-items: center;
-
             gap: 4px;
-
             cursor: pointer;
-
             user-select: none;
-
         }
-
         .options-bar input[type="checkbox"] {
-
             accent-color: #5a2d82;
-
             width: 18px;
-
             height: 18px;
-
             margin-right: 4px;
-
         }
-
         #damage-stats-list {
-
             margin:8px 0 0 18px;
-
             padding:0;
-
         }
-
         .rank-li {
-
             display: flex;
-
             align-items: center;
-
             gap: 10px;
-
             margin-bottom: 3px;
-
             padding: 6px 10px;
-
             border-radius: 7px;
-
             background: linear-gradient(90deg, #f9f6e7 80%, #fff 100%);
-
             font-size: 1.08em;
-
             box-shadow: 0 1px 4px rgba(200,180,100,0.04);
-
         }
-
         .rank-1 {
-
             background: linear-gradient(90deg, #ffe082 80%, #fffde7 100%);
-
             font-weight: bold;
-
             color: #b8860b;
-
             border-left: 5px solid #ffd700;
-
         }
-
         .rank-2 {
-
             background: linear-gradient(90deg, #e0e0e0 80%, #fff 100%);
-
             color: #757575;
-
             border-left: 5px solid #b0b0b0;
-
         }
-
         .rank-3 {
-
             background: linear-gradient(90deg, #ffd6a0 80%, #fff 100%);
-
             color: #b87333;
-
             border-left: 5px solid #cd7f32;
-
         }
-
         .rank-4 {
-
             background: linear-gradient(90deg, #f0f4f8 90%, #fff 100%);
-
             color: #7a8a99;
-
             border-left: 5px solid #b0bec5;
-
         }
-
         .rank-medal {
-
             font-size: 1.3em;
-
             margin-right: 4px;
-
         }
-
         .rank-badge {
-
             display: inline-block;
-
             background: #e3e3ff;
-
             color: #5a2d82;
-
             border-radius: 8px;
-
             padding: 2px 8px;
-
             font-size: 0.98em;
-
             font-weight: 600;
-
             margin-right: 8px;
-
             letter-spacing: 0.5px;
-
         }
-
         .rank-total {
-
             color: #1976d2;
-
             font-weight: bold;
-
             margin-left: 8px;
-
         }
-
         .rank-dps {
-
             color: #43a047;
-
             font-weight: bold;
-
             margin-left: 8px;
-
         }
-
     </style>
-
 </head>
-
 <body>
-
     <div class="container">
-
         <h2>콩철이 텔레파시</h2>
-
         <div id="conn-controls">
-
             <button id="disconnectBtn" class="btn" style="display:none;">⛔ 연결 중지</button>
-
             <button id="reconnectBtn" class="btn">🔄 재연결</button>
-
         </div>
-
         <!-- 데미지 통계 패널 추가 -->
-
         <div id="damage-stats-panel">
-
             <div class="options-bar">
-
                 <label>
-
                     <input type="checkbox" id="bossOnlyCheckbox">
-
                     <span>보스만 보기</span>
-
                 </label>
-
                 <!-- 옵션 추가 영역 (추후 확장) -->
-
             </div>
-
             <b style="margin-bottom:4px;">데미지 순위:</b>
-
             <ol id="damage-stats-list"></ol>
-
             <div id="detail-panel" class="detail-panel"></div>
-
         </div>
-
     </div>
-
     <script>
-
         const wsUrl = "ws://localhost:8080";
-
         const disconnectBtn = document.getElementById('disconnectBtn');
-
         const reconnectBtn = document.getElementById('reconnectBtn');
-
         const connControls = document.getElementById('conn-controls');
-
         let ws;
 
-
-
         const damageStats = {};
-
         const damageByTargetByUser = {};
-
         const jobMapping = {};
-
         const damageForDPS = {};
-
         let bossTmpData = {id:0, hp:0};
-
         p_hpdff = null
-
-
 
         let bossOnly = false;
 
-
-
         // 옵션바 체크박스 이벤트 및 보스 HP 표시
-
         function setupOptionsBar() {
-
             const bossCheckbox = document.getElementById('bossOnlyCheckbox');
-
             bossCheckbox.checked = bossOnly;
-
             bossCheckbox.onchange = () => {
-
                 bossOnly = bossCheckbox.checked;
-
                 renderDamageStats();
-
             };
-
         }
-
-
 
         let selectedDetailUserId = null;
 
-
-
         function showDetail(user_id) {
-
             selectedDetailUserId = user_id;
-
             const detailDiv = document.getElementById('detail-panel');
-
             const stat = damageStats[user_id];
-
             if (!stat) {
-
-                detailDiv.style.visibility = 'hidden';
-
+                detailDiv.classList.remove('visible');
                 return;
-
             }
-
             const count = stat.count || 1;
-
             const critRate = stat.crit ? ((stat.crit / count) * 100).toFixed(1) : 0;
-
             const addhitRate = stat.addhit ? ((stat.addhit / count) * 100).toFixed(1) : 0;
-
-            detailDiv.innerHTML = `<b>${jobMapping[user_id] || user_id}</b> - <span>크리 확률: <b>${critRate}%</b>, 추가타 확률: <b>${addhitRate}%</b></span>`;
-
-            detailDiv.style.visibility = 'visible';
-
+            const dotDamage = stat.dot_damage || 0;
+            detailDiv.innerHTML = `
+                <span class="detail-title">${jobMapping[user_id] || user_id}</span>
+                <div class="detail-stats">
+                    <div><span class="detail-label">크리 확률:</span>
+                    <span class="detail-value">${critRate}%</span></div>
+                    <div><span class="detail-label">추가타 확률:</span>
+                    <span class="detail-value">${addhitRate}%</span></div>
+                    <div><span class="detail-label">DOT 총합:</span>
+                    <span class="detail-dot">${dotDamage}</span></div>
+                </div>
+            `;
+            detailDiv.classList.add('visible');
         }
-
-
 
         function clearDetail() {
-
             selectedDetailUserId = null;
-
             const detailDiv = document.getElementById('detail-panel');
-
-            detailDiv.style.visibility = 'hidden';
-
+            detailDiv.classList.remove('visible');
         }
-
-
 
         // 데미지 순위 표시 함수
-
         function renderDamageStats() {
-
             setupOptionsBar();
-
             const statsList = document.getElementById('damage-stats-list');
-
             while (statsList.firstChild) statsList.removeChild(statsList.firstChild);
 
-
-
             let statsSource = damageStats;
-
             // 보스만 보기 체크시 bossTmpData.id 사용
-
             if (bossOnly && bossTmpData.id && damageByTargetByUser[bossTmpData.id]) {
-
                 statsSource = damageByTargetByUser[bossTmpData.id];
-
             }
-
-
 
             const sorted = Object.entries(statsSource)
-
                 .sort((a, b) => b[1].total - a[1].total)
-
                 .slice(0, 12);
-
             sorted
-
                 .filter(([user_id, stat])=>
-
                     jobMapping[user_id] != null
-
                 )
-
                 .forEach(([user_id, stat], idx) => {
-
                     const total = stat.total || 0;
-
                     const dps = damageForDPS[user_id] ? damageForDPS[user_id].dps : 0;
 
-
-
                     const li = document.createElement('li');
-
                     li.className = 'rank-li';
-
                     if (idx === 0) li.classList.add('rank-1');
-
                     else if (idx === 1) li.classList.add('rank-2');
-
                     else if (idx === 2) li.classList.add('rank-3');
-
                     else li.classList.add('rank-4');
 
-
-
                     // 클릭 이벤트로 디테일 표시
-
                     li.style.cursor = 'pointer';
-
                     li.onclick = () => {
-
                         if (selectedDetailUserId === user_id) {
-
                             clearDetail();
-
                         } else {
-
                             showDetail(user_id);
-
                         }
-
                     };
 
-
-
                     // 메달 아이콘
-
                     let medal = '';
-
                     if (idx === 0) medal = '🥇';
-
                     else if (idx === 1) medal = '🥈';
-
                     else if (idx === 2) medal = '🥉';
-
                     // 직업명 뱃지
-
                     const badge = document.createElement('span');
-
                     badge.className = 'rank-badge';
-
                     badge.textContent = jobMapping[user_id] ? jobMapping[user_id] : user_id;
 
-
-
                     const totalSpan = document.createElement('span');
-
                     totalSpan.className = 'rank-total';
-
                     totalSpan.textContent = `총합: ${total}`;
-
                     const dpsSpan = document.createElement('span');
-
                     dpsSpan.className = 'rank-dps';
-
                     dpsSpan.textContent = `DPS: ${dps}`;
-
                     if (medal) {
-
                         const medalSpan = document.createElement('span');
-
                         medalSpan.className = 'rank-medal';
-
                         medalSpan.textContent = medal;
-
                         li.appendChild(medalSpan);
-
                     } else {
-
                         const rankNum = document.createElement('span');
-
                         rankNum.style = "font-weight:bold; color:#888; margin-left:8px; margin-right:8px;";
-
                         rankNum.textContent = `${idx+1}`;
-
                         li.appendChild(rankNum);
-
                     }
-
                     li.appendChild(badge);
-
                     li.appendChild(totalSpan);
-
                     li.appendChild(dpsSpan);
-
                     statsList.appendChild(li);
-
                 });
 
-
-
             // 디테일 패널 상태 유지
-
             if (selectedDetailUserId && damageStats[selectedDetailUserId]) {
-
                 showDetail(selectedDetailUserId);
-
             } else {
-
                 clearDetail();
-
             }
-
         }
-
         
 
-
-
         function processJson(obj) {
-
             // obj는 {type: "json", hide: bool, data: [...]}
-
             let items = obj.data;
-
             if (!Array.isArray(items) || items.length === 0) return;
 
-
-
             // 사용하는 데이터 처리
-
             let updated = false;
-
             items.forEach(entry => {
-
                 if (!entry || typeof entry !== "object") return;                
-
                 switch (entry.type) {       
-
                     case 100178:
-
                         if(entry.prev_hp > entry.current_hp){
-
                             p_hpdff = entry;
-
                             if (bossTmpData.hp < entry.prev_hp) {
-
                                 bossTmpData.id = entry.target_id;
-
                                 bossTmpData.hp = entry.prev_hp;
-
                             }
-
                         }
-
                         p_hpdff = entry
-
                         if (bossTmpData.hp < p_hpdff.prev_hp){
-
                             bossTmpData.id = p_hpdff.target_id;
-
                             bossTmpData.hp = p_hpdff.prev_hp;
-
                         }
-
                         break;
-
                     case 10299:
-
                         if(p_hpdff != null && entry.target_id == p_hpdff.target_id){
-
                             const dmg = Number(p_hpdff.prev_hp - p_hpdff.current_hp) || 0;
-
                             const uid = entry.user_id;
-
                             
-
                             if (!damageStats[uid]) 
-
                                 damageStats[uid] = {
-
                                     count: 0,
-
                                     total: 0,
-
                                     crit: 0,
-
                                     addhit: 0,
-
+                                    dot_damage: 0,
                                 }; 
-
-                            damageStats[uid].count += 1;
-
                             damageStats[uid].total += dmg;
-
                             damageStats[uid].crit += entry.flags.crit_flag === 1;
-
                             damageStats[uid].addhit += entry.flags.add_hit_flag === 1;
-
+                            if (entry.flags.dot_flag === 1){
+                                damageStats[uid].count += 1;
+                            }
+                            if (entry.flags.dot_flag === 1 || entry.flags.dot_flag2 === 1){
+                                damageStats[uid].dot_damage += dmg;
+                            }
                             
-
                             if (!damageByTargetByUser[entry.target_id]) 
-
                                 damageByTargetByUser[entry.target_id] = {};
-
                             if (!damageByTargetByUser[entry.target_id][uid]) 
-
                                 damageByTargetByUser[entry.target_id][uid] = {
-
                                     total: 0,
-
                                 };
-
                             damageByTargetByUser[entry.target_id][uid].total += dmg;
 
-
-
                             if (!damageForDPS[uid] ||  (Date.now() - damageForDPS[uid].time) > 1000 * 10)
-
                                 damageForDPS[uid] = {
-
                                     dps: 0,
-
                                     total: 0,
-
                                     time: Date.now(),
-
                                     start: Date.now()
-
                                 };
-
                             damageForDPS[uid].total += dmg;
-
                             damageForDPS[uid].time = Date.now();
-
                             damageForDPS[uid].dps = Math.floor(damageForDPS[uid].total / ((Date.now() - damageForDPS[uid].start) / 1000 + 1));
 
-
-
                             updated = true;
-
                         }
-
                         p_attack = null;
-
                         break;
-
                     case 100041:
-
                         const uid = entry.user_id;
-
                         if (!jobMapping[uid]) {
-
                             jobMapping[uid] = null
-
                             const sk = entry.skill_name.toLowerCase()
-
                             if(sk.includes("expertwarrior")) jobMapping[uid] = "검방";
-
                             else if(sk.includes("greatsword")) jobMapping[uid] = "대검";
-
                             else if(sk.includes("swordmaster")) jobMapping[uid] = "검술";
-
                             
-
                             else if(sk.includes("healer")) jobMapping[uid] = "힐러";
-
                             else if(sk.includes("monk")) jobMapping[uid] = "수도";
-
                             else if(sk.includes("priest")) jobMapping[uid] = "사제";
 
-
-
                             else if(sk.includes("bard")) jobMapping[uid] = "음유";                            
-
                             else if(sk.includes("battlemusician")) jobMapping[uid] = "악사";
-
                             else if(sk.includes("dancer")) jobMapping[uid] = "댄서";
-
                             
-
                             else if(sk.includes("fighter")) jobMapping[uid] = "격가";
-
                             else if(sk.includes("dualblades")) jobMapping[uid] = "듀블";
-
                             else if(sk.includes("highthief")) jobMapping[uid] = "도적";
-
                             
-
                             else if(sk.includes("highmage")) jobMapping[uid] = "븝미";
-
                             else if(sk.includes("firemage")) jobMapping[uid] = "화법";
-
                             else if(sk.includes("icemage")) jobMapping[uid] = "빙결";
-
                             else if(sk.includes("lightningmage")) jobMapping[uid] = "전격";
 
-
-
                             else if(sk.includes("higharcher")) jobMapping[uid] = "궁수";
-
                             else if(sk.includes("arbalist")) jobMapping[uid] = "석궁";
-
                             else if(sk.includes("longbowman")) jobMapping[uid] = "장궁";
-
-
 
                             else if(sk.includes("defaultattack")) jobMapping[uid] = null;
 
-
-
                             else{
-
                                 jobMapping[uid] = null                           
-
                             }
-
                         }
-
                         break;
-
                     default:
-
                         console.log("failed " + entry.type)
-
                         // 필요시 다른 타입 처리
-
                         break;
-
                 }
-
             });
-
             if (updated) renderDamageStats();
-
         }
-
-
 
         function setButtons(connected) {
-
             if (connected) {
-
                 disconnectBtn.style.display = '';
-
                 reconnectBtn.style.display = 'none';
-
                 connControls.style.background = 'none';
-
             } else {
-
                 disconnectBtn.style.display = 'none';
-
                 reconnectBtn.style.display = '';
-
                 connControls.style.background = 'none';
-
             }
-
         }
-
-
 
         function connect() {
-
             ws = new WebSocket(wsUrl);
 
-
-
             ws.onopen = () => {
-
                 setButtons(true);
-
             };
-
-
 
             ws.onmessage = (event) => {
-
                 try {
-
                     const obj = JSON.parse(event.data);
-
                     switch (obj.type) {
-
                         case "log":
-
                             logMessage(obj.data, 'recv');
-
                             break;
-
                         case "json":
-
                             processJson(obj);
-
                             logJson(obj);
-
                             break;
-
                         default:
-
                             console.warn("알 수 없는 메시지 타입:", obj.type);
-
                     }
-
                 } catch (e) {}
-
             };
-
-
 
             ws.onclose = () => {
-
                 setButtons(false);
-
             };
-
-
 
             ws.onerror = (err) => {
-
                 setButtons(false);
-
             };
-
         }
 
-
-
         disconnectBtn.onclick = () => {
-
             if (ws && ws.readyState === WebSocket.OPEN) {
-
                 ws.close();
-
             }
-
         };
-
-
 
         reconnectBtn.onclick = () => {
-
             connect();
-
         };
 
-
-
         setButtons(false);
-
         connect();
-
     </script>
-
 </body>
-
 </html>
