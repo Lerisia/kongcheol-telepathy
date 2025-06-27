@@ -199,8 +199,6 @@ class PacketStreamer:
                 break
             pivot += 9  # 패킷 시작 부분 이후로 이동
 
-            self.logger.info(f"Packet start")
-
             # 패킷이 완전한지 확인
             while ( buffer_size > pivot + 9):
 
