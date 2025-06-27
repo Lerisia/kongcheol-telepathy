@@ -156,15 +156,21 @@ parse_dict = {
     10701: parse_self_damage,
     }
 
+SEQ_MOD = 2**32
+
+def seq_distance(a, b):
+    return ((a - b + 2**31) % 2**32) - 2**31
+
 class PacketStreamer:
     def __init__(self, filter_expr: str = "tcp and src port 16000"):
         self.queue: asyncio.Queue[Packet] = asyncio.Queue()
         self.sniffer = AsyncSniffer(filter=filter_expr, prn=self._enqueue_packet)
         self.loop = asyncio.get_event_loop()
         self.buffer:bytes = b''
+        self.tcp_segments = {}
+        self.current_seq = None
 
     async def stream(self, websocket) -> None:
-        # 타입 힌트에서 WebSocketServerProtocol 제거 (websockets 12.x 이상 권장)
         self.sniffer.start()
         consumer_task = asyncio.create_task(self._process(websocket))
         try:
@@ -187,8 +193,13 @@ class PacketStreamer:
             # 패킷 시작 부분 찾기
             pivot = data.find(b'\x65\x27\x00\x00\x00\x00\x00\x00\x00', pivot)
             if pivot == -1:
-                break        
+                break
+            # 패킷 끝 부분 찾기
+            if data.find(b'\xe0\x27\x00\x00\x00\x00\x00\x00\x00', pivot + 9) == -1:
+                break
             pivot += 9  # 패킷 시작 부분 이후로 이동
+
+            self.logger.info(f"Packet start")
 
             # 패킷이 완전한지 확인
             while ( buffer_size > pivot + 9):
@@ -202,7 +213,7 @@ class PacketStreamer:
                     break
                 
                 # 컨텐츠가 제대로 들어왔는지 확인
-                if buffer_size <= pivot + 9 + length:
+                if buffer_size < pivot + 9 + length:
                     break
 
                # 컨텐츠 추출
@@ -233,15 +244,37 @@ class PacketStreamer:
                 break
 
             if pkt.haslayer(Raw):
-                self.buffer = bytes(pkt[Raw].load)
+                seq = pkt[TCP].seq
+                payload = bytes(pkt[Raw].load)
                 
-                # 16kb 이상이면 절반만 남김
+                if self.current_seq is None:
+                    self.current_seq = seq
+
+                if abs(seq_distance(seq,self.current_seq)) > 10000:
+                    print(f"Resetting due to large sequence gap: {seq} (current: {self.current_seq})")
+                    self.tcp_segments.clear()
+                    self.current_seq = None
+                    self.buffer = b''
+                    continue
+                    
+                if seq not in self.tcp_segments or self.tcp_segments[seq] != payload:
+                    self.tcp_segments[seq] = payload
+
+                if self.current_seq not in self.tcp_segments:
+                    print(f"Missing segment for current sequence: {self.current_seq}, current is {seq}")
+
+                # 재조립
+                while self.current_seq in self.tcp_segments:
+                    segment = self.tcp_segments.pop(self.current_seq)
+                    self.buffer += segment
+                    self.current_seq = (self.current_seq + len(segment)) % SEQ_MOD
+
                 if len(self.buffer) > 1024 * 4 * 4:
                     self.buffer = self.buffer[len(self.buffer)//2:]
                     print("Buffer size exceeded, trimming to half")
 
                 parsed, pivot = self._packet_parser(self.buffer)
-                self.buffer = self.buffer[pivot:]  # 남은 데이터는 버퍼에 남김
+                self.buffer = self.buffer[pivot:]
 
                 if parsed:
                     try:
@@ -250,8 +283,6 @@ class PacketStreamer:
                     except Exception as e:
                         print(f"Error sending WebSocket message: {e}")
                         break
-
-
 
 async def main() -> None:
     async def wsserve(websocket) -> None:

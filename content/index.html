@@ -142,6 +142,18 @@
             margin-bottom: 2px;
             min-height: 32px;
         }
+        .options-bar #conn-controls {
+            justify-content: flex-end;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin: 0 0 0 18px;
+            background: none;
+            box-shadow: none;
+            min-width: 120px;
+        }
         .options-bar label {
             font-size: 1em;
             font-weight: 600;
@@ -225,21 +237,20 @@
 </head>
 <body>
     <div class="container">
-        <h2>콩철이 텔레파시</h2>
-        <div id="conn-controls">
-            <button id="disconnectBtn" class="btn" style="display:none;">⛔ 연결 중지</button>
-            <button id="reconnectBtn" class="btn">🔄 재연결</button>
-        </div>
         <!-- 데미지 통계 패널 추가 -->
         <div id="damage-stats-panel">
-            <div class="options-bar">
+            <div class="options-bar"> 
+                                <div id="conn-controls">
+                    <button id="disconnectBtn" class="btn" style="display:none;">⛔ 연결 중지</button>
+                    <button id="reconnectBtn" class="btn">🔄 재연결</button>
+                </div>            
                 <label>
                     <input type="checkbox" id="bossOnlyCheckbox">
                     <span>보스만 보기</span>
                 </label>
                 <!-- 옵션 추가 영역 (추후 확장) -->
+
             </div>
-            <b style="margin-bottom:4px;">데미지 순위:</b>
             <ol id="damage-stats-list"></ol>
             <div id="detail-panel" class="detail-panel"></div>
         </div>
@@ -393,7 +404,6 @@
                 clearDetail();
             }
         }
-        
 
         function processJson(obj) {
             // obj는 {type: "json", hide: bool, data: [...]}
@@ -411,19 +421,18 @@
                             if (bossTmpData.hp < entry.prev_hp) {
                                 bossTmpData.id = entry.target_id;
                                 bossTmpData.hp = entry.prev_hp;
+                                console.log("보스 HP 업데이트", bossTmpData);
                             }
                         }
-                        p_hpdff = entry
-                        if (bossTmpData.hp < p_hpdff.prev_hp){
-                            bossTmpData.id = p_hpdff.target_id;
-                            bossTmpData.hp = p_hpdff.prev_hp;
+                        else {
+                            p_hpdff = null;
                         }
                         break;
                     case 10299:
                         if(p_hpdff != null && entry.target_id == p_hpdff.target_id){
                             const dmg = Number(p_hpdff.prev_hp - p_hpdff.current_hp) || 0;
                             const uid = entry.user_id;
-                            
+
                             if (!damageStats[uid]) 
                                 damageStats[uid] = {
                                     count: 0,
@@ -468,8 +477,8 @@
                     case 100041:
                         if (!jobMapping[entry.user_id]) {
                             const uid = entry.user_id;
-                            jobMapping[uid] = null
-                            const sk = entry.skill_name.toLowerCase()
+                            const sk = entry.skill_name.toLowerCase();
+
                             if(sk.includes("expertwarrior")) jobMapping[uid] = "검방";
                             else if(sk.includes("greatsword")) jobMapping[uid] = "대검";
                             else if(sk.includes("swordmaster")) jobMapping[uid] = "검술";
@@ -495,6 +504,7 @@
                             else if(sk.includes("arbalist")) jobMapping[uid] = "석궁";
                             else if(sk.includes("longbowman")) jobMapping[uid] = "장궁";
 
+                            else if(sk.includes("novice")) jobMapping[uid] = "뉴비";
                             else if(sk.includes("defaultattack")) jobMapping[uid] = null;
 
                             else{
@@ -504,6 +514,7 @@
                         break;
                     case 10701:
                         {
+                            if (entry.damage > 2095071572) return;
                             const uid = entry.user_id;
                             if(!selfDamageByUser[uid]) {
                                 selfDamageByUser[uid] = {
