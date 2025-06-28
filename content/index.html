@@ -476,7 +476,7 @@
                         p_attack = null;
                         break;
                     case 100041:
-                        if (!jobMapping[entry.user_id]) {
+                        if (!jobMapping[entry.user_id] || jobMapping[uid] == "뉴비") {
                             const uid = entry.user_id;
                             const sk = entry.skill_name.toLowerCase();
 
