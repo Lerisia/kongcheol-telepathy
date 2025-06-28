@@ -244,10 +244,14 @@
                     <button id="disconnectBtn" class="btn" style="display:none;">⛔ 연결 중지</button>
                     <button id="reconnectBtn" class="btn">🔄 재연결</button>
                 </div>            
-                <label>
-                    <input type="checkbox" id="bossOnlyCheckbox">
-                    <span>보스만 보기</span>
-                </label>
+            <button id="saveSnapshotBtn" class="btn">기록 저장 및 초기화</button>
+            <select id="snapshotSelect">
+                <option value="">실시간</option>
+            </select>
+            <label>
+                <input type="checkbox" id="bossOnlyCheckbox">
+                <span>보스만 보기</span>
+            </label>
                 <!-- 옵션 추가 영역 (추후 확장) -->
 
             </div>
@@ -269,6 +273,8 @@
         const bossTmpData = {id:0, hp:0};
         const selfTmpData = {id:0, total:0}
         const battleClock = { start: null, lastHit: null };
+        let viewMode = 'live';
+        let currentSnapshot = null;
         p_hpdff = null
 
         let bossOnly = false;
@@ -284,6 +290,52 @@
         }
 
         let selectedDetailUserId = null;
+
+        const snapshots = JSON.parse(localStorage.getItem('snapshots')||'[]');
+
+        // 저장 버튼 핸들러
+        document.getElementById('saveSnapshotBtn').onclick = () => {
+            const now = Date.now();
+            snapshots.push({
+                name: new Date(now).toLocaleString(),
+                time: now,
+                stats: JSON.parse(JSON.stringify(damageStats)),
+                clock: { ...battleClock }
+            });
+            localStorage.setItem('snapshots', JSON.stringify(snapshots));
+            updateSnapshotList();
+
+            Object.keys(damageStats).forEach(k => delete damageStats[k]);
+            battleClock.start = battleClock.lastHit = null;
+
+            renderDamageStats();
+            updateSnapshotList();
+        };
+
+        // 드롭다운 업데이트
+        function updateSnapshotList() {
+            const sel = document.getElementById('snapshotSelect');
+            sel.innerHTML = `<option value="">실시간</option>`;
+            snapshots.forEach((s, i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = s.name;
+                sel.appendChild(opt);
+            });
+        }
+        updateSnapshotList();
+
+        document.getElementById('snapshotSelect').onchange = e => {
+            const idx = e.target.value;
+            if (idx === "") {
+                renderDamageStats();
+            } else {
+                const snap = snapshots[idx];
+                Object.assign(damageStats, snap.stats);
+                Object.assign(battleClock, snap.clock);
+                renderDamageStats();
+            }
+        };
 
         function showDetail(user_id) {
             selectedDetailUserId = user_id;
@@ -325,11 +377,17 @@
 
         // 데미지 순위 표시 함수
         function renderDamageStats() {
+            const statsSource = viewMode === 'live'
+                ? damageStats
+                : snapshots[currentSnapshot].stats;
+            const clock = viewMode === 'live'
+                ? battleClock
+                : snapshots[currentSnapshot].clock;
+
             setupOptionsBar();
             const statsList = document.getElementById('damage-stats-list');
             while (statsList.firstChild) statsList.removeChild(statsList.firstChild);
 
-            let statsSource = damageStats;
             // 보스만 보기 체크시 bossTmpData.id 사용
             if (bossOnly && bossTmpData.id && damageByTargetByUser[bossTmpData.id]) {
                 statsSource = damageByTargetByUser[bossTmpData.id];
@@ -344,10 +402,10 @@
                 )
                 .forEach(([user_id, stat], idx) => {
                     const total = stat.total || 0;
-                    const damage = damageStats[user_id];
+                    const damage = statsSource[user_id];
                     const dps = Math.floor(
                         (bossOnly ? damage.total_by_target[bossTmpData.id] : damage.total)
-                        / ((battleClock.lastHit - battleClock.start) / 1000 + 1)
+                        / ((clock.lastHit - clock.start) / 1000 + 1)
                     );
 
                     const li = document.createElement('li');
@@ -410,6 +468,8 @@
         }
 
         function processJson(obj) {
+            if (viewMode !== 'live') return;
+
             // obj는 {type: "json", hide: bool, data: [...]}
             let items = obj.data;
             if (!Array.isArray(items) || items.length === 0) return;
@@ -590,6 +650,7 @@
         };
 
         reconnectBtn.onclick = () => {
+            updateSnapshotList();
             connect();
         };
 
