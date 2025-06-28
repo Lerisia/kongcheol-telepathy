@@ -264,9 +264,9 @@
 
         const damageStats = {};
         const damageByTargetByUser = {};
+        const damageForDPS = {};
         const selfDamageByUser = {}
         const jobMapping = {};
-        const damageForDPS = {};
         const bossTmpData = {id:0, hp:0};
         const selfTmpData = {id:0, total:0}
         p_hpdff = null
@@ -278,7 +278,7 @@
             const bossCheckbox = document.getElementById('bossOnlyCheckbox');
             bossCheckbox.checked = bossOnly;
             bossCheckbox.onchange = () => {
-                bossOnly = bossCheckbox.checked;
+                bossOnly = bossCheckbox.checked;                
                 renderDamageStats();
             };
         }
@@ -344,7 +344,11 @@
                 )
                 .forEach(([user_id, stat], idx) => {
                     const total = stat.total || 0;
-                    const dps = damageForDPS[user_id] ? damageForDPS[user_id].dps : 0;
+                    const dpsdmg = damageForDPS[user_id];
+                    const dps = Math.floor(
+                        (bossOnly ? dpsdmg.total_by_target[bossTmpData.id] : dpsdmg.total)
+                        / ((dpsdmg.time - dpsdmg.start) / 1000 + 1)
+                    );
 
                     const li = document.createElement('li');
                     li.className = 'rank-li';
@@ -459,16 +463,19 @@
                                 };
                             damageByTargetByUser[entry.target_id][uid].total += dmg;
 
-                            if (!damageForDPS[uid] ||  (Date.now() - damageForDPS[uid].time) > 1000 * 10)
-                                damageForDPS[uid] = {
+                            if (!damageForDPS[uid] || (Date.now() - damageForDPS[uid].time) > 1000 * 10){
+                               damageForDPS[uid] = {
                                     dps: 0,
                                     total: 0,
+                                    total_by_target: {},
                                     time: Date.now(),
-                                    start: Date.now()
+                                    start: Date.now(),
                                 };
+                            }
                             damageForDPS[uid].total += dmg;
                             damageForDPS[uid].time = Date.now();
-                            damageForDPS[uid].dps = Math.floor(damageForDPS[uid].total / ((Date.now() - damageForDPS[uid].start) / 1000 + 1));
+                            if (!damageForDPS[uid].total_by_target[entry.target_id]) damageForDPS[uid].total_by_target[entry.target_id] = 0; 
+                            damageForDPS[uid].total_by_target[entry.target_id] += dmg;
 
                             updated = true;
                         }
