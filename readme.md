@@ -1,3 +1,13 @@
+## This fork
+- 미터기 개인 실험용 fork입니다
+- 미터기 다운로드는 [원본 repo](https://github.com/spider-plant-641/kongcheol-telepathy)를 찾아주세요.
+
+## Acknowledgments
+이 프로젝트는 [원본 repo](https://github.com/spider-plant-641/kongcheol-telepathy)의 코드를 바탕으로 합니다.
+소스를 공개해주신 원작자 분께 깊이 감사드립니다.
+
+이하 원본 README입니다.
+
 # 콩철 프로젝트
 
 - 콩철
