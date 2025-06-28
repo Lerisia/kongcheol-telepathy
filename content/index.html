@@ -264,11 +264,11 @@
 
         const damageStats = {};
         const damageByTargetByUser = {};
-        const damageForDPS = {};
         const selfDamageByUser = {}
         const jobMapping = {};
         const bossTmpData = {id:0, hp:0};
         const selfTmpData = {id:0, total:0}
+        const battleClock = { start: null, lastHit: null };
         p_hpdff = null
 
         let bossOnly = false;
@@ -344,10 +344,10 @@
                 )
                 .forEach(([user_id, stat], idx) => {
                     const total = stat.total || 0;
-                    const dpsdmg = damageForDPS[user_id];
+                    const damage = damageStats[user_id];
                     const dps = Math.floor(
-                        (bossOnly ? dpsdmg.total_by_target[bossTmpData.id] : dpsdmg.total)
-                        / ((dpsdmg.time - dpsdmg.start) / 1000 + 1)
+                        (bossOnly ? damage.total_by_target[bossTmpData.id] : damage.total)
+                        / ((battleClock.lastHit - battleClock.start) / 1000 + 1)
                     );
 
                     const li = document.createElement('li');
@@ -441,11 +441,14 @@
                                 damageStats[uid] = {
                                     count: 0,
                                     total: 0,
+                                    total_by_target: {},
                                     crit: 0,
                                     addhit: 0,
                                     dot_damage: 0,
                                 }; 
                             damageStats[uid].total += dmg;
+                            if (!damageStats[uid].total_by_target[entry.target_id]) damageStats[uid].total_by_target[entry.target_id] = 0; 
+                            damageStats[uid].total_by_target[entry.target_id] += dmg;
                             damageStats[uid].crit += entry.flags.crit_flag === 1;
                             damageStats[uid].addhit += entry.flags.add_hit_flag === 1;
                             if (entry.flags.dot_flag === 0){
@@ -463,19 +466,10 @@
                                 };
                             damageByTargetByUser[entry.target_id][uid].total += dmg;
 
-                            if (!damageForDPS[uid] || (Date.now() - damageForDPS[uid].time) > 1000 * 10){
-                               damageForDPS[uid] = {
-                                    dps: 0,
-                                    total: 0,
-                                    total_by_target: {},
-                                    time: Date.now(),
-                                    start: Date.now(),
-                                };
+                            if (!battleClock.start){
+                                battleClock.start = Date.now();
                             }
-                            damageForDPS[uid].total += dmg;
-                            damageForDPS[uid].time = Date.now();
-                            if (!damageForDPS[uid].total_by_target[entry.target_id]) damageForDPS[uid].total_by_target[entry.target_id] = 0; 
-                            damageForDPS[uid].total_by_target[entry.target_id] += dmg;
+                            battleClock.lastHit = Date.now();
 
                             updated = true;
                         }
@@ -538,7 +532,6 @@
                         break;
                     default:
                         console.log("failed " + entry.type)
-                        // 필요시 다른 타입 처리
                         break;
                 }
             });
