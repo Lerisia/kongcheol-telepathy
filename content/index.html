@@ -312,14 +312,13 @@
         const damageByTargetByUser = {};
         const damageByUserBySkillByTarget = {};
         const damageForDPS = {};
+        const timeForDPS = { start: Date.now(), end: Date.now(), timeByTarget: {}}
         const selfDamageByUser = {}
         const jobMapping = {};
         const skillTrans = {src2name:{}, name2src:{}};
         const bossTmpData = {id:0, hp:0};
         const selfTmpData = {id:0, total:0}
         
-        let dps_start_time = Date.now();
-        let dps_end_time = Date.now();
         let p_hpdff = null
         let bossOnly = false;
 
@@ -453,8 +452,10 @@
                     const total = stat.total || 0;
                     const dpsdmg = damageForDPS[user_id];
                     const dps = Math.floor(
-                        (bossOnly ? dpsdmg.total_by_target[bossTmpData.id] : dpsdmg.total)
-                        / ((dps_end_time - dps_start_time) / 1000 + 1)
+                        (bossOnly 
+                        ? dpsdmg.total_by_target[bossTmpData.id] / ((timeForDPS.timeByTarget[bossTmpData.id].end - timeForDPS.timeByTarget[bossTmpData.id].start)/1000+1)
+                        : dpsdmg.total / ((timeForDPS.end - timeForDPS.start)/1000+1) 
+                        ) || 0
                     );
 
                     const li = document.createElement('li');
@@ -519,8 +520,11 @@
         }
 
         function clearDPS(){
-            dps_start_time = Date.now()
-            dps_end_time = Date.now();
+            timeForDPS.start = Date.now();
+            timeForDPS.end = Date.now();
+            Object.keys(timeForDPS.timeByTarget).forEach(key => {
+                delete timeForDPS.timeByTarget[key];
+            });
             Object.keys(damageForDPS).forEach(key => {
                 damageForDPS[key].total = 0;
                 damageForDPS[key].total_by_target = {};
@@ -584,11 +588,20 @@
                                 };
                             damageByTargetByUser[entry.target_id][uid].total += dmg;
                             
-                            // 60초 동안 안때리면 초기화
-                            if ((Date.now() - dps_end_time) > 1000 * 60){
+
+                            if ((Date.now() - timeForDPS.end) > 1000 * 60){
                                 clearDPS();
+                                timeForDPS.start = Date.now();
                             }
-                            dps_end_time = Date.now();
+                            timeForDPS.end = Date.now();
+                            if (!timeForDPS.timeByTarget[entry.target_id]){
+                                timeForDPS.timeByTarget[entry.target_id] = {
+                                    start: Date.now(),
+                                    end: Date.now(),
+                                }
+                            }
+                            timeForDPS.timeByTarget[entry.target_id].end = Date.now();
+
                             if (!damageForDPS[uid]){
                                damageForDPS[uid] = {
                                     total: 0,
@@ -656,6 +669,7 @@
                                 else if(sk.includes("arbalist")) jobMapping[uid] = "석궁";
                                 else if(sk.includes("longbowman")) jobMapping[uid] = "장궁";
 
+                                else if(sk.includes("novicewarrior_shieldbash")) jobMapping[uid] = null;
                                 else if(sk.includes("novice")) jobMapping[uid] = "뉴비";
                                 else if(sk.includes("defaultattack")) jobMapping[uid] = null;
 
