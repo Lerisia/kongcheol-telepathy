@@ -288,7 +288,7 @@
                     <input type="checkbox" id="bossOnlyCheckbox">
                     <span>보스만 보기</span>
                 </label>
-                <button id="dpsclearBtn" class="btn">초기화</button>
+                <button id="clearBtn" class="btn">초기화</button>
                 <!-- 옵션 추가 영역 (추후 확장) -->
 
             </div>
@@ -305,7 +305,7 @@
         const reconnectBtn = document.getElementById('reconnectBtn');
         const connControls = document.getElementById('conn-controls');
         const bossCheckbox = document.getElementById('bossOnlyCheckbox');
-        const dpsClearBtn = document.getElementById('dpsclearBtn');
+        const clearBtn = document.getElementById('clearBtn');
         let ws;
 
         const damageStats = {};
@@ -516,14 +516,18 @@
             }
         }
 
-        function clearDPS(){
+        function clearRecord(){
             battleClock.start   = null;
             battleClock.lastHit = null;
 
-            for (const k in damageStats) {
-                delete damageStats[k];
-            }
+            [damageStats, damageByTargetByUser, damageByUserBySkillByTarget, selfDamageByUser]
+            .forEach(obj => Object.keys(obj).forEach(k => delete obj[k]));
 
+            bossTmpData.id = bossTmpData.hp = 0;
+            selfTmpData.id = selfTmpData.total = 0;
+            p_hpdff = null;
+
+            clearDetails();
             renderDamageStats();
         }
 
@@ -594,7 +598,7 @@
                             
                             // 60초 동안 안때리면 초기화
                             if ((Date.now() - battleClock.lastHit) > 1000 * 60){
-                                clearDPS();
+                                clearRecord();
                             }
 
                             if (!is_wide_dot && damageByUserBySkillByTarget[uid]) {
@@ -754,8 +758,8 @@
             bossOnly = bossCheckbox.checked;                
             renderDamageStats();
         };
-        dpsClearBtn.onclick = () => {
-            clearDPS();
+        clearBtn.onclick = () => {
+            clearRecord();
             renderDamageStats();
         };
 
