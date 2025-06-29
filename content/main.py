@@ -227,7 +227,6 @@ class PacketStreamer:
                     try:
                         content = brotli.decompress(content)                
                     except brotli.error as e:
-                        print(f"Brotli decompression error: {e}")
                         pass
   
                 if data_type in parse_dict:
