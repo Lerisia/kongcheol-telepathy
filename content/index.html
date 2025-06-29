@@ -89,21 +89,23 @@
             color: #333;
             min-height: 38px;
             font-family: 'Consolas', 'Menlo', monospace;
-            max-width: 540px;
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
+            position: static;
+            left: unset;
+            top: unset;
+            transform: none;
             z-index: 20;
-            top: 100%;
             margin-top: 18px;
-            display: block;
+            margin-bottom: 0;
             visibility: hidden;
-            transition: box-shadow 0.2s, border-color 0.2s;
         }
         .detail-panel.visible {
             visibility: visible;
             box-shadow: 0 8px 32px rgba(255, 215, 64, 0.16), 0 2px 0 #ffe082 inset;
             border-color: #ffd54f;
+        }
+        /* detail-panel2는 detail-panel과 동일한 스타일 사용 */
+        #detail-panel2.detail-panel {
+            margin-top: 12px;
         }
         .detail-title {
             font-size: 1.18em;
@@ -233,14 +235,52 @@
             box-shadow: 0 0 8px #ffb6c1aa;
             font-weight: bold;
         }
+        .skill-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 6px;
+            background: none;
+        }
+        .skill-table th, .skill-table td {
+            padding: 6px 16px;
+            text-align: left;
+            font-size: 1em;
+            border: none;
+
+            text-align: center;
+            vertical-align: middle;            
+        }
+        .skill-table th {
+            color: #333;
+            background: #f7f7f7;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .skill-table td {
+            background: none;
+            border-bottom: 1px solid #f0f0f0;
+            color: #222;
+        }
+        .skill-table tr:last-child td {
+            border-bottom: none;
+        }
+        .skill-table tr:hover td {
+            background: #f5f5f5;
+            color: #1976d2;
+        }
+        .skill-table td:nth-child(2), .skill-table th:nth-child(2),
+        .skill-table td:nth-child(3), .skill-table th:nth-child(3) {
+            text-align: right;
+            font-family: 'Consolas', 'Menlo', monospace;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- 데미지 통계 패널 추가 -->
         <div id="damage-stats-panel">
             <div class="options-bar"> 
-                                <div id="conn-controls">
+                <div id="conn-controls">
                     <button id="disconnectBtn" class="btn" style="display:none;">⛔ 연결 중지</button>
                     <button id="reconnectBtn" class="btn">🔄 재연결</button>
                 </div>            
@@ -248,11 +288,15 @@
                     <input type="checkbox" id="bossOnlyCheckbox">
                     <span>보스만 보기</span>
                 </label>
+                <button id="dpsclearBtn" class="btn">DPS 초기화</button>
                 <!-- 옵션 추가 영역 (추후 확장) -->
 
             </div>
             <ol id="damage-stats-list"></ol>
+        </div>
+        <div>
             <div id="detail-panel" class="detail-panel"></div>
+            <div id="detail-panel2" class="detail-panel"></div>
         </div>
     </div>
     <script>
@@ -260,28 +304,22 @@
         const disconnectBtn = document.getElementById('disconnectBtn');
         const reconnectBtn = document.getElementById('reconnectBtn');
         const connControls = document.getElementById('conn-controls');
+        const bossCheckbox = document.getElementById('bossOnlyCheckbox');
+        const dpsClearBtn = document.getElementById('dpsclearBtn');
         let ws;
 
         const damageStats = {};
         const damageByTargetByUser = {};
+        const damageByUserBySkillByTarget = {};
         const selfDamageByUser = {}
         const jobMapping = {};
+        const skillTrans = {src2name:{}, name2src:{}};
         const bossTmpData = {id:0, hp:0};
         const selfTmpData = {id:0, total:0}
         const battleClock = { start: null, lastHit: null };
         p_hpdff = null
 
         let bossOnly = false;
-
-        // 옵션바 체크박스 이벤트 및 보스 HP 표시
-        function setupOptionsBar() {
-            const bossCheckbox = document.getElementById('bossOnlyCheckbox');
-            bossCheckbox.checked = bossOnly;
-            bossCheckbox.onchange = () => {
-                bossOnly = bossCheckbox.checked;                
-                renderDamageStats();
-            };
-        }
 
         let selectedDetailUserId = null;
 
@@ -317,15 +355,82 @@
             detailDiv.classList.add('visible');
         }
 
-        function clearDetail() {
+        function showDetail2(user_id) {
+            const detailDiv = document.getElementById('detail-panel2');
+            detailDiv.innerHTML = '';
+            detailDiv.classList.remove('visible');
+
+            const skillData = damageByUserBySkillByTarget[user_id];
+            if (!skillData || !skillData.total_by_skill_by_target) {
+                detailDiv.innerHTML = `<div style="color:#888;">데이터 없음</div>`;
+                detailDiv.classList.add('visible');
+                return;
+            }
+            const bossId = bossTmpData.id;
+            const isBossMode = bossOnly && bossId;
+
+            // 스킬별 딜량 집계
+            const skillRows = [];
+            let total = 0;
+            for (const skill in skillData.total_by_skill_by_target) {
+                const skillObj = skillData.total_by_skill_by_target[skill];
+                let dmg = 0;
+                if (isBossMode && skillObj.total_by_target && skillObj.total_by_target[bossId]) {
+                    dmg = skillObj.total_by_target[bossId];
+                } else if (!isBossMode) {
+                    dmg = skillObj.total || 0;
+                }
+                if (dmg > 0) {
+                    const crit = skillObj.cnt_crit / skillObj.count || 0;
+                    const addhit = skillObj.cnt_addhit / skillObj.count || 0;
+                    skillRows.push({ skill, dmg, crit, addhit });
+                    total += dmg;
+                }
+            }
+            if (skillRows.length === 0) {
+                detailDiv.innerHTML = `<div style="color:#888;">데이터 없음</div>`;
+                detailDiv.classList.add('visible');
+                return;
+            }
+            skillRows.sort((a, b) => b.dmg - a.dmg);
+
+            let table = `
+                <table class="skill-table">
+                <thead>
+                    <tr>
+                        <th style="width: 6%;">비율</th>
+                        <th style="width: 18%;"">딜량</th>
+                        <th style="width: 6%;">크확</th>
+                        <th style="width: 6%;">추확</th>
+                        <th>스킬명</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            skillRows.forEach(row => {
+                const percent = total > 0 ? ((row.dmg / total) * 100).toFixed(1) : 0;
+                table += `<tr>
+                    <td>${percent}%</td>
+                    <td>${row.dmg.toLocaleString()}</td>
+                    <td>${row.crit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td>${row.addhit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td style="text-align: left">${row.skill}</td>
+                </tr>`;
+            });
+            table += `</tbody></table>`;
+            detailDiv.innerHTML = table;
+            detailDiv.classList.add('visible');
+        }
+
+        function clearDetails() {
             selectedDetailUserId = null;
             const detailDiv = document.getElementById('detail-panel');
             detailDiv.classList.remove('visible');
+            const detailDiv2 = document.getElementById('detail-panel2');
+            detailDiv2.classList.remove('visible');
         }
 
         // 데미지 순위 표시 함수
         function renderDamageStats() {
-            setupOptionsBar();
             const statsList = document.getElementById('damage-stats-list');
             while (statsList.firstChild) statsList.removeChild(statsList.firstChild);
 
@@ -361,9 +466,10 @@
                     li.style.cursor = 'pointer';
                     li.onclick = () => {
                         if (selectedDetailUserId === user_id) {
-                            clearDetail();
+                            clearDetails();
                         } else {
                             showDetail(user_id);
+                            showDetail2(user_id);
                         }
                     };
 
@@ -404,9 +510,19 @@
             // 디테일 패널 상태 유지
             if (selectedDetailUserId && damageStats[selectedDetailUserId]) {
                 showDetail(selectedDetailUserId);
+                showDetail2(selectedDetailUserId);
             } else {
-                clearDetail();
+                clearDetails();
             }
+        }
+
+        function clearDPS(){
+            battleClock.start = Date.now()
+            battleClock.lastHit = Date.now();
+            Object.keys(damageStats).forEach(key => {
+                damageStats[key].total = 0;
+                damageStats[key].total_by_target = {};
+            });
         }
 
         function processJson(obj) {
@@ -425,7 +541,6 @@
                             if (bossTmpData.hp < entry.prev_hp) {
                                 bossTmpData.id = entry.target_id;
                                 bossTmpData.hp = entry.prev_hp;
-                                console.log("보스 HP 업데이트", bossTmpData);
                             }
                         }
                         else {
@@ -434,8 +549,12 @@
                         break;
                     case 10299:
                         if(p_hpdff != null && entry.target_id == p_hpdff.target_id){
-                            const dmg = Number(p_hpdff.prev_hp - p_hpdff.current_hp) || 0;
                             const uid = entry.user_id;
+                            const dmg = Number(p_hpdff.prev_hp - p_hpdff.current_hp) || 0;
+                            const is_wide_dot = entry.flags.dot_flag === 1 || entry.flags.dot_flag2 === 1;
+                            const is_small_dot = entry.flags.dot_flag === 1;
+                            const is_crit = entry.flags.crit_flag === 1;
+                            const is_addhit = entry.flags.add_hit_flag === 1;
 
                             if (!damageStats[uid]) 
                                 damageStats[uid] = {
@@ -449,12 +568,12 @@
                             damageStats[uid].total += dmg;
                             if (!damageStats[uid].total_by_target[entry.target_id]) damageStats[uid].total_by_target[entry.target_id] = 0; 
                             damageStats[uid].total_by_target[entry.target_id] += dmg;
-                            damageStats[uid].crit += entry.flags.crit_flag === 1;
-                            damageStats[uid].addhit += entry.flags.add_hit_flag === 1;
-                            if (entry.flags.dot_flag === 0){
+                            damageStats[uid].crit += is_crit;
+                            damageStats[uid].addhit += is_addhit;
+                            if (!is_small_dot){ // 확률 구할 때 도트 빼려고
                                 damageStats[uid].count += 1;
                             }
-                            if (entry.flags.dot_flag === 1 || entry.flags.dot_flag2 === 1){
+                            if (is_wide_dot){
                                 damageStats[uid].dot_damage += dmg;
                             }
                             
@@ -470,47 +589,84 @@
                                 battleClock.start = Date.now();
                             }
                             battleClock.lastHit = Date.now();
+                            
+                            // 60초 동안 안때리면 초기화
+                            if ((Date.now() - battleClock.lastHit) > 1000 * 60){
+                                clearDPS();
+                            }
+
+                            if (!is_wide_dot && damageByUserBySkillByTarget[uid]) {
+                                const ust = damageByUserBySkillByTarget[uid];
+                                
+                                if (!ust.total_by_skill_by_target[ust.current_skill]){
+                                    ust.total_by_skill_by_target[ust.current_skill] = {
+                                        total: 0,
+                                        count: 0,
+                                        cnt_crit: 0,
+                                        cnt_addhit: 0,
+                                        total_by_target: {}
+                                    };
+                                }
+                                const st = ust.total_by_skill_by_target[ust.current_skill];
+                                st.count++;
+                                st.cnt_crit += is_crit ? 1 : 0;
+                                st.cnt_addhit += is_addhit ? 1 : 0;
+                                st.total += dmg;
+                                if (!st.total_by_target[entry.target_id]) {
+                                    st.total_by_target[entry.target_id] = 0;
+                                }
+                                st.total_by_target[entry.target_id] += dmg;
+                            }
 
                             updated = true;
                         }
-                        p_attack = null;
                         break;
                     case 100041:
                         if (!jobMapping[entry.user_id] || jobMapping[uid] == "뉴비") {
                             const uid = entry.user_id;
                             const sk = entry.skill_name.toLowerCase();
+                            if (!jobMapping[entry.user_id]) {
 
-                            if(sk.includes("expertwarrior")) jobMapping[uid] = "검방";
-                            else if(sk.includes("greatsword")) jobMapping[uid] = "대검";
-                            else if(sk.includes("swordmaster")) jobMapping[uid] = "검술";
+                                if(sk.includes("expertwarrior")) jobMapping[uid] = "검방";
+                                else if(sk.includes("greatsword")) jobMapping[uid] = "대검";
+                                else if(sk.includes("swordmaster")) jobMapping[uid] = "검술";
                             
-                            else if(sk.includes("healer")) jobMapping[uid] = "힐러";
-                            else if(sk.includes("monk")) jobMapping[uid] = "수도";
-                            else if(sk.includes("priest")) jobMapping[uid] = "사제";
+                                else if(sk.includes("healer")) jobMapping[uid] = "힐러";
+                                else if(sk.includes("monk")) jobMapping[uid] = "수도";
+                                else if(sk.includes("priest")) jobMapping[uid] = "사제";
 
-                            else if(sk.includes("bard")) jobMapping[uid] = "음유";                            
-                            else if(sk.includes("battlemusician")) jobMapping[uid] = "악사";
-                            else if(sk.includes("dancer")) jobMapping[uid] = "댄서";
+                                else if(sk.includes("bard")) jobMapping[uid] = "음유";                            
+                                else if(sk.includes("battlemusician")) jobMapping[uid] = "악사";
+                                else if(sk.includes("dancer")) jobMapping[uid] = "댄서";
                             
-                            else if(sk.includes("fighter")) jobMapping[uid] = "격가";
-                            else if(sk.includes("dualblades")) jobMapping[uid] = "듀블";
-                            else if(sk.includes("highthief")) jobMapping[uid] = "도적";
+                                else if(sk.includes("fighter")) jobMapping[uid] = "격가";
+                                else if(sk.includes("dualblades")) jobMapping[uid] = "듀블";
+                                else if(sk.includes("highthief")) jobMapping[uid] = "도적";
                             
-                            else if(sk.includes("highmage")) jobMapping[uid] = "븝미";
-                            else if(sk.includes("firemage")) jobMapping[uid] = "화법";
-                            else if(sk.includes("icemage")) jobMapping[uid] = "빙결";
-                            else if(sk.includes("lightningmage")) jobMapping[uid] = "전격";
+                                else if(sk.includes("highmage")) jobMapping[uid] = "븝미";
+                                else if(sk.includes("firemage")) jobMapping[uid] = "화법";
+                                else if(sk.includes("icemage")) jobMapping[uid] = "빙결";
+                                else if(sk.includes("lightningmage")) jobMapping[uid] = "전격";
 
-                            else if(sk.includes("higharcher")) jobMapping[uid] = "궁수";
-                            else if(sk.includes("arbalist")) jobMapping[uid] = "석궁";
-                            else if(sk.includes("longbowman")) jobMapping[uid] = "장궁";
+                                else if(sk.includes("higharcher")) jobMapping[uid] = "궁수";
+                                else if(sk.includes("arbalist")) jobMapping[uid] = "석궁";
+                                else if(sk.includes("longbowman")) jobMapping[uid] = "장궁";
 
-                            else if(sk.includes("novice")) jobMapping[uid] = "뉴비";
-                            else if(sk.includes("defaultattack")) jobMapping[uid] = null;
+                                else if(sk.includes("novice")) jobMapping[uid] = "뉴비";
+                                else if(sk.includes("defaultattack")) jobMapping[uid] = null;
 
-                            else{
-                                jobMapping[uid] = null                           
+                                else{
+                                    jobMapping[uid] = null                           
+                                }
                             }
+                            
+                            if (!damageByUserBySkillByTarget[uid]) {
+                                damageByUserBySkillByTarget[uid] = {
+                                    current_skill: null,
+                                    total_by_skill_by_target: {},
+                                };
+                            }
+                            damageByUserBySkillByTarget[uid].current_skill = skillTrans.src2name[entry.skill_name] || entry.skill_name;
                         }
                         break;
                     case 10701:
@@ -561,17 +717,18 @@
                 try {
                     const obj = JSON.parse(event.data);
                     switch (obj.type) {
-                        case "log":
-                            logMessage(obj.data, 'recv');
-                            break;
                         case "json":
                             processJson(obj);
-                            logJson(obj);
+                            break;
+                        case "skill":
+                            skillTrans.src2name = obj.data;
                             break;
                         default:
                             console.warn("알 수 없는 메시지 타입:", obj.type);
                     }
-                } catch (e) {}
+                } catch (e) {
+                    console.log("메시지 처리 오류:", e, event.data);
+                }
             };
 
             ws.onclose = () => {
@@ -588,9 +745,16 @@
                 ws.close();
             }
         };
-
         reconnectBtn.onclick = () => {
             connect();
+        };
+        bossCheckbox.onchange = () => {
+            bossOnly = bossCheckbox.checked;                
+            renderDamageStats();
+        };
+        dpsClearBtn.onclick = () => {
+            clearDPS();
+            renderDamageStats();
         };
 
         setButtons(false);

@@ -149,7 +149,7 @@ class PacketParser:
             "type": 100041,
             "hide": False,
             "user_id": user_id,
-            "skill_name": skill_name.replace(b'\x00', b'').decode('utf-8', errors='replace').strip().lower(),
+            "skill_name": skill_name.replace(b'\x00', b'').decode('utf-8', errors='replace').strip(),
     }
 
     def _parse_hp_changed(self, data):

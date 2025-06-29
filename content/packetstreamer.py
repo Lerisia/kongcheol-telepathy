@@ -31,7 +31,13 @@ class PacketStreamer:
         finally:
             consumer_task.cancel()
             self.sniffer.stop()
-            self.sniffer.join()
+            self.sniffer.join()            
+
+    async def send_skill_mapping(self, websocket) -> None:
+        import json
+        with open('content/skills.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)  # 파일 → 딕셔너리
+            await websocket.send(json.dumps({"type": "skill", "data": data}))
 
     def _enqueue_packet(self, pkt: Packet) -> None:
         self.loop.call_soon_threadsafe(self.queue.put_nowait, pkt)
