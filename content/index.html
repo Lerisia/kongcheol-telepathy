@@ -288,7 +288,7 @@
                     <input type="checkbox" id="bossOnlyCheckbox">
                     <span>보스만 보기</span>
                 </label>
-                <button id="dpsclearBtn" class="btn">DPS 초기화</button>
+                <button id="dpsclearBtn" class="btn">초기화</button>
                 <!-- 옵션 추가 영역 (추후 확장) -->
 
             </div>
@@ -517,12 +517,14 @@
         }
 
         function clearDPS(){
-            battleClock.start = Date.now()
-            battleClock.lastHit = Date.now();
-            Object.keys(damageStats).forEach(key => {
-                damageStats[key].total = 0;
-                damageStats[key].total_by_target = {};
-            });
+            battleClock.start   = null;
+            battleClock.lastHit = null;
+
+            for (const k in damageStats) {
+                delete damageStats[k];
+            }
+
+            renderDamageStats();
         }
 
         function processJson(obj) {
