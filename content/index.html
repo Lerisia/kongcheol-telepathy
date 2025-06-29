@@ -323,7 +323,7 @@
 
         let selectedDetailUserId = null;
 
-        function showDetail(user_id) {
+        function showCritAddDetail(user_id) {
             selectedDetailUserId = user_id;
             const detailDiv = document.getElementById('detail-panel');
             const stat = damageStats[user_id];
@@ -355,7 +355,7 @@
             detailDiv.classList.add('visible');
         }
 
-        function showDetail2(user_id) {
+        function showSkillDetail(user_id) {
             const detailDiv = document.getElementById('detail-panel2');
             detailDiv.innerHTML = '';
             detailDiv.classList.remove('visible');
@@ -468,8 +468,8 @@
                         if (selectedDetailUserId === user_id) {
                             clearDetails();
                         } else {
-                            showDetail(user_id);
-                            showDetail2(user_id);
+                            showCritAddDetail(user_id);
+                            showSkillDetail(user_id);
                         }
                     };
 
@@ -510,7 +510,7 @@
             // 디테일 패널 상태 유지
             if (selectedDetailUserId && damageStats[selectedDetailUserId]) {
                 showDetail(selectedDetailUserId);
-                showDetail2(selectedDetailUserId);
+                showSkillDetail(selectedDetailUserId);
             } else {
                 clearDetails();
             }
@@ -629,52 +629,50 @@
                         }
                         break;
                     case 100041:
-                        if (!jobMapping[entry.user_id] || jobMapping[uid] == "뉴비") {
-                            const uid = entry.user_id;
-                            const sk = entry.skill_name.toLowerCase();
-                            if (!jobMapping[entry.user_id]) {
+                        const uid = entry.user_id;
+                        const sk = entry.skill_name.toLowerCase();
+                        if (!jobMapping[entry.user_id]) {
 
-                                if(sk.includes("expertwarrior")) jobMapping[uid] = "검방";
-                                else if(sk.includes("greatsword")) jobMapping[uid] = "대검";
-                                else if(sk.includes("swordmaster")) jobMapping[uid] = "검술";
-                            
-                                else if(sk.includes("healer")) jobMapping[uid] = "힐러";
-                                else if(sk.includes("monk")) jobMapping[uid] = "수도";
-                                else if(sk.includes("priest")) jobMapping[uid] = "사제";
+                            if(sk.includes("expertwarrior")) jobMapping[uid] = "검방";
+                            else if(sk.includes("greatsword")) jobMapping[uid] = "대검";
+                            else if(sk.includes("swordmaster")) jobMapping[uid] = "검술";
+                        
+                            else if(sk.includes("healer")) jobMapping[uid] = "힐러";
+                            else if(sk.includes("monk")) jobMapping[uid] = "수도";
+                            else if(sk.includes("priest")) jobMapping[uid] = "사제";
 
-                                else if(sk.includes("bard")) jobMapping[uid] = "음유";                            
-                                else if(sk.includes("battlemusician")) jobMapping[uid] = "악사";
-                                else if(sk.includes("dancer")) jobMapping[uid] = "댄서";
-                            
-                                else if(sk.includes("fighter")) jobMapping[uid] = "격가";
-                                else if(sk.includes("dualblades")) jobMapping[uid] = "듀블";
-                                else if(sk.includes("highthief")) jobMapping[uid] = "도적";
-                            
-                                else if(sk.includes("highmage")) jobMapping[uid] = "븝미";
-                                else if(sk.includes("firemage")) jobMapping[uid] = "화법";
-                                else if(sk.includes("icemage")) jobMapping[uid] = "빙결";
-                                else if(sk.includes("lightningmage")) jobMapping[uid] = "전격";
+                            else if(sk.includes("bard")) jobMapping[uid] = "음유";                            
+                            else if(sk.includes("battlemusician")) jobMapping[uid] = "악사";
+                            else if(sk.includes("dancer")) jobMapping[uid] = "댄서";
+                        
+                            else if(sk.includes("fighter")) jobMapping[uid] = "격가";
+                            else if(sk.includes("dualblades")) jobMapping[uid] = "듀블";
+                            else if(sk.includes("highthief")) jobMapping[uid] = "도적";
+                        
+                            else if(sk.includes("highmage")) jobMapping[uid] = "븝미";
+                            else if(sk.includes("firemage")) jobMapping[uid] = "화법";
+                            else if(sk.includes("icemage")) jobMapping[uid] = "빙결";
+                            else if(sk.includes("lightningmage")) jobMapping[uid] = "전격";
 
-                                else if(sk.includes("higharcher")) jobMapping[uid] = "궁수";
-                                else if(sk.includes("arbalist")) jobMapping[uid] = "석궁";
-                                else if(sk.includes("longbowman")) jobMapping[uid] = "장궁";
+                            else if(sk.includes("higharcher")) jobMapping[uid] = "궁수";
+                            else if(sk.includes("arbalist")) jobMapping[uid] = "석궁";
+                            else if(sk.includes("longbowman")) jobMapping[uid] = "장궁";
 
-                                else if(sk.includes("novice")) jobMapping[uid] = "뉴비";
-                                else if(sk.includes("defaultattack")) jobMapping[uid] = null;
+                            else if(sk.includes("novice")) jobMapping[uid] = "뉴비";
+                            else if(sk.includes("defaultattack")) jobMapping[uid] = null;
 
-                                else{
-                                    jobMapping[uid] = null                           
-                                }
+                            else{
+                                jobMapping[uid] = null                           
                             }
-                            
-                            if (!damageByUserBySkillByTarget[uid]) {
-                                damageByUserBySkillByTarget[uid] = {
-                                    current_skill: null,
-                                    total_by_skill_by_target: {},
-                                };
-                            }
-                            damageByUserBySkillByTarget[uid].current_skill = skillTrans.src2name[entry.skill_name] || entry.skill_name;
                         }
+                        
+                        if (!damageByUserBySkillByTarget[uid]) {
+                            damageByUserBySkillByTarget[uid] = {
+                                current_skill: null,
+                                total_by_skill_by_target: {},
+                            };
+                        }
+                        damageByUserBySkillByTarget[uid].current_skill = skillTrans.src2name[entry.skill_name] || entry.skill_name;
                         break;
                     case 10701:
                         {
