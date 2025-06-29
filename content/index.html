@@ -316,7 +316,7 @@
         const skillTrans = {src2name:{}, name2src:{}};
         const bossTmpData = {id:0, hp:0};
         const selfTmpData = {id:0, total:0}
-        const battleClock = { start: null, lastHit: null };
+        const battleClock = { start: null, lastHit: null, timeByTarget: {} };
         p_hpdff = null
 
         let bossOnly = false;
@@ -451,8 +451,10 @@
                     const total = stat.total || 0;
                     const damage = damageStats[user_id];
                     const dps = Math.floor(
-                        (bossOnly ? damage.total_by_target[bossTmpData.id] : damage.total)
-                        / ((battleClock.lastHit - battleClock.start) / 1000 + 1)
+                        (bossOnly 
+                        ? damage.total_by_target[bossTmpData.id] / ((battleClock.timeByTarget[bossTmpData.id].end - battleClock.timeByTarget[bossTmpData.id].start)/1000+1)
+                        : damage.total / ((battleClock.lastHit - battleClock.start)/1000+1) 
+                        ) || 0
                     );
 
                     const li = document.createElement('li');
@@ -519,6 +521,9 @@
         function clearRecord(){
             battleClock.start   = null;
             battleClock.lastHit = null;
+            Object.keys(battleClock.timeByTarget).forEach(key => {
+                delete battleClock.timeByTarget[key];
+            });
 
             [damageStats, damageByTargetByUser, damageByUserBySkillByTarget, selfDamageByUser]
             .forEach(obj => Object.keys(obj).forEach(k => delete obj[k]));
@@ -597,7 +602,15 @@
                             }
                             battleClock.lastHit = Date.now();
                             
-                            // 60초 동안 안때리면 초기화
+                            if (!battleClock.timeByTarget[entry.target_id]){
+                                battleClock.timeByTarget[entry.target_id] = {
+                                    start: Date.now(),
+                                    lastHit: Date.now(),
+                                }
+                            }
+
+                            battleClock.timeByTarget[entry.target_id].end = Date.now();
+
                             if ((Date.now() - battleClock.lastHit) > 1000 * 60){
                                 clearRecord();
                             }
@@ -658,6 +671,7 @@
                             else if(sk.includes("arbalist")) jobMapping[uid] = "석궁";
                             else if(sk.includes("longbowman")) jobMapping[uid] = "장궁";
 
+                            else if(sk.includes("novicewarrior_shieldbash")) jobMapping[uid] = null;
                             else if(sk.includes("novice")) jobMapping[uid] = "뉴비";
                             else if(sk.includes("defaultattack")) jobMapping[uid] = null;
 
