@@ -574,8 +574,12 @@
                             damageStats[uid].total += dmg;
                             if (!damageStats[uid].total_by_target[entry.target_id]) damageStats[uid].total_by_target[entry.target_id] = 0; 
                             damageStats[uid].total_by_target[entry.target_id] += dmg;
-                            damageStats[uid].crit += is_crit;
-                            damageStats[uid].addhit += is_addhit;
+
+                            if (!is_small_dot){ // 확률 구할 때 도트 빼려고
+                                damageStats[uid].count += 1;
+                                damageStats[uid].crit += is_crit;
+                                damageStats[uid].addhit += is_addhit;
+                            }
                             if (is_wide_dot){
                                 damageStats[uid].dot_damage += dmg;
                             }
