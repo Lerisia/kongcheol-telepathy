@@ -220,7 +220,6 @@ class PacketParser:
             try:
                 content = brotli.decompress(content)                
             except brotli.error as e:
-                print(f"Brotli decompression error: {e}")
                 pass
 
         if header.data_type in self._parse_dict:

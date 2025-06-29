@@ -407,7 +407,7 @@
                 </thead>
                 <tbody>`;
             skillRows.forEach(row => {
-                const percent = total > 0 ? ((row.dmg / total) * 100).toFixed(1) : 0;
+                const percent = total > 0 ? ((row.dmg / total) * 100).toFixed(2) : 0;
                 table += `<tr>
                     <td>${percent}%</td>
                     <td>${row.dmg.toLocaleString()}</td>
